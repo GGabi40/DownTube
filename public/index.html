@@ -1,0 +1,83 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>DownTube - Descargador Premium</title>
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;600;800&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+    <div class="blob blob-1"></div>
+    <div class="blob blob-2"></div>
+    
+    <div class="container">
+        <header>
+            <h1><span class="highlight">Down</span>Tube</h1>
+            <p>Descarga tus videos y shorts favoritos en máxima calidad</p>
+        </header>
+
+        <div class="card input-section">
+            <div class="input-group" style="display: flex; gap: 1rem;">
+                <input type="url" id="url-input" placeholder="Pega el enlace de YouTube aquí..." required>
+                <button id="load-btn" class="btn primary-btn" style="flex: 0 1 auto; min-width: 120px;">
+                    <span class="btn-text">Buscar</span>
+                    <span class="loader hidden"></span>
+                </button>
+            </div>
+            
+            <div class="options-group hidden" id="options-group">
+                <div style="width: 100%; margin-bottom: 0.5rem;">
+                    <p id="video-title" style="color: var(--text-muted); font-weight: 600; margin: 0;"></p>
+                </div>
+                <div class="select-wrapper">
+                    <label>Formato:</label>
+                    <select id="format-select">
+                        <option value="mp4">Video (MP4)</option>
+                        <option value="mp3">Audio (MP3)</option>
+                        <option value="wav">Audio (WAV)</option>
+                    </select>
+                </div>
+                <div class="select-wrapper" id="quality-wrapper">
+                    <label>Calidad (MP4):</label>
+                    <select id="quality-select">
+                        <option value="max">Máxima (La que tenga el video)</option>
+                    </select>
+                </div>
+                
+                <button id="add-btn" class="btn primary-btn">
+                    <span class="btn-text">Añadir a la lista</span>
+                </button>
+            </div>
+            <p id="error-message" class="error-message hidden"></p>
+        </div>
+
+        <div class="queue-section hidden" id="queue-section">
+            <div class="queue-header">
+                <h2>Lista de Descargas</h2>
+                <!-- <button id="download-all-btn" class="btn secondary-btn">Descargar Todos</button> -->
+            </div>
+            <div class="queue-list" id="queue-list">
+                <!-- Items se agregarán dinámicamente aquí -->
+            </div>
+        </div>
+    </div>
+
+    <!-- Template for queue items -->
+    <template id="queue-item-template">
+        <div class="queue-item">
+            <img class="item-thumb" src="" alt="Thumbnail">
+            <div class="item-info">
+                <h3 class="item-title">Title...</h3>
+                <p class="item-meta">Format | Quality</p>
+            </div>
+            <div class="item-actions">
+                <button class="btn icon-btn download-item-btn" title="Descargar">⬇️</button>
+                <button class="btn icon-btn remove-item-btn" title="Eliminar">✖</button>
+            </div>
+        </div>
+    </template>
+
+    <script src="app.js"></script>
+</body>
+</html>
