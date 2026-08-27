@@ -23,6 +23,23 @@ function resolveYtDlpPath() {
 }
 const ytDlpPath = resolveYtDlpPath();
 
+// YouTube suele bloquear pedidos que vienen de IPs de datacenter (Vercel, AWS, etc.)
+// con un chequeo anti-bot. Si se define YTDLP_COOKIES (contenido de un cookies.txt
+// exportado desde el navegador logueado), lo usamos para autenticar los pedidos.
+let cookiesFilePath = null;
+if (process.env.YTDLP_COOKIES) {
+    cookiesFilePath = path.join(os.tmpdir(), 'downtube-cookies.txt');
+    try {
+        fs.writeFileSync(cookiesFilePath, process.env.YTDLP_COOKIES);
+    } catch (e) {
+        console.error('No se pudo escribir el archivo de cookies:', e.message);
+        cookiesFilePath = null;
+    }
+}
+function cookieArgs() {
+    return cookiesFilePath ? ['--cookies', cookiesFilePath] : [];
+}
+
 function parseUrl(rawUrl) {
     if (!rawUrl || typeof rawUrl !== 'string') return null;
     try {
@@ -45,7 +62,7 @@ app.get('/api/info', async (req, res) => {
         // execFile (no shell) + "--" antes de la URL: evita inyección de comandos
         // y que una URL que empiece con "-" se interprete como flag de yt-dlp.
         const { stdout } = await execFileAsync(ytDlpPath, [
-            '--dump-json', '--no-warnings', '--no-call-home', '--no-check-certificate', '--no-playlist', '--', url
+            '--dump-json', '--no-warnings', '--no-check-certificate', '--no-playlist', ...cookieArgs(), '--', url
         ]);
         const info = JSON.parse(stdout);
 
@@ -84,6 +101,7 @@ app.get('/api/download', async (req, res) => {
             '--ffmpeg-location', ffmpegPath,
             '--no-warnings', '--no-check-certificate', '--no-playlist',
             '--concurrent-fragments', '5',
+            ...cookieArgs(),
             '-P', downloadsDir,
             '-o', `${videoId}.%(ext)s`
         ];
@@ -105,7 +123,7 @@ app.get('/api/download', async (req, res) => {
 
         let videoInfo = { title: "video" };
         try {
-            const { stdout } = await execFileAsync(ytDlpPath, ['--dump-json', '--no-warnings', '--', url]);
+            const { stdout } = await execFileAsync(ytDlpPath, ['--dump-json', '--no-warnings', ...cookieArgs(), '--', url]);
             videoInfo = JSON.parse(stdout);
         } catch (e) {
             console.error("No se pudo pre-cargar el titulo");

@@ -49,4 +49,13 @@ vercel --prod
 ## ⚠️ Notas
 
 - Los videos se procesan dentro del tiempo límite de ejecución de la función serverless (configurado en 60s en `vercel.json`); videos muy largos o conversiones a MP3/WAV pesadas pueden no alcanzar a completarse en el plan gratuito de Vercel.
+- **YouTube puede bloquear los pedidos con "Sign in to confirm you're not a bot".** Es la protección anti-bot de YouTube contra IPs de datacenter (Vercel, AWS, GCP, etc.), no un bug de la app — pasa en casi cualquier hosting serverless/cloud. Se puede sortear pasándole cookies de una cuenta logueada (ver abajo).
 - Este proyecto es para uso personal/educativo. Descargar contenido de YouTube puede no cumplir con sus Términos de Servicio — usalo bajo tu propio criterio.
+
+### 🍪 Autenticar con cookies (opcional, para esquivar el bloqueo anti-bot)
+
+1. Instalá una extensión tipo [Get cookies.txt LOCALLY](https://chrome.google.com/webstore/detail/get-cookiestxt-locally/cclelndahbckbenkjhflpdbgdldlbecc) y exportá las cookies de `youtube.com` estando logueado.
+2. En el dashboard de Vercel del proyecto → **Settings → Environment Variables**, creá una variable `YTDLP_COOKIES` con el contenido completo de ese archivo `cookies.txt`.
+3. Redeployá. El backend detecta la variable y se la pasa a `yt-dlp` automáticamente.
+
+⚠️ Esas cookies son la sesión de tu cuenta de YouTube — no las compartas ni las subas al repo. Usá preferentemente una cuenta secundaria.
