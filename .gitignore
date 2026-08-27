@@ -2,3 +2,4 @@ node_modules
 bin/
 .vercel
 yt-dlp.exe
+.claude/
