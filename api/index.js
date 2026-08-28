@@ -36,13 +36,14 @@ if (process.env.YTDLP_COOKIES) {
         cookiesFilePath = null;
     }
 }
-function cookieArgs() {
-    if (!cookiesFilePath) return [];
-    // Con cookies, YouTube exige un PO Token para el cliente "web" o no devuelve
-    // formatos reproducibles ("No video formats found!"). Sin un proveedor de PO
-    // Token configurado, este flag le pide a yt-dlp que igual liste esos formatos
-    // (pueden fallar/cortarse en descargas largas, pero es el workaround estándar).
-    return ['--cookies', cookiesFilePath, '--extractor-args', 'youtube:formats=missing_pot'];
+// El cliente "web" (el que usa yt-dlp por defecto) es el que YouTube somete al
+// chequeo "Sign in to confirm you're not a bot" y, si hay cookies, al requisito
+// de PO Token. El cliente "android" pega contra el endpoint de la app móvil y
+// no pasa por ninguno de los dos, así que evitamos el problema de raíz.
+function ytDlpExtraArgs() {
+    const args = ['--extractor-args', 'youtube:player_client=android'];
+    if (cookiesFilePath) args.push('--cookies', cookiesFilePath);
+    return args;
 }
 
 function parseUrl(rawUrl) {
@@ -67,7 +68,7 @@ app.get('/api/info', async (req, res) => {
         // execFile (no shell) + "--" antes de la URL: evita inyección de comandos
         // y que una URL que empiece con "-" se interprete como flag de yt-dlp.
         const { stdout } = await execFileAsync(ytDlpPath, [
-            '--dump-json', '--no-warnings', '--no-check-certificate', '--no-playlist', ...cookieArgs(), '--', url
+            '--dump-json', '--no-warnings', '--no-check-certificate', '--no-playlist', ...ytDlpExtraArgs(), '--', url
         ]);
         const info = JSON.parse(stdout);
 
@@ -106,7 +107,7 @@ app.get('/api/download', async (req, res) => {
             '--ffmpeg-location', ffmpegPath,
             '--no-warnings', '--no-check-certificate', '--no-playlist',
             '--concurrent-fragments', '5',
-            ...cookieArgs(),
+            ...ytDlpExtraArgs(),
             '-P', downloadsDir,
             '-o', `${videoId}.%(ext)s`
         ];
@@ -128,7 +129,7 @@ app.get('/api/download', async (req, res) => {
 
         let videoInfo = { title: "video" };
         try {
-            const { stdout } = await execFileAsync(ytDlpPath, ['--dump-json', '--no-warnings', ...cookieArgs(), '--', url]);
+            const { stdout } = await execFileAsync(ytDlpPath, ['--dump-json', '--no-warnings', ...ytDlpExtraArgs(), '--', url]);
             videoInfo = JSON.parse(stdout);
         } catch (e) {
             console.error("No se pudo pre-cargar el titulo");
