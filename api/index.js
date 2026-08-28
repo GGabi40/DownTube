@@ -37,7 +37,12 @@ if (process.env.YTDLP_COOKIES) {
     }
 }
 function cookieArgs() {
-    return cookiesFilePath ? ['--cookies', cookiesFilePath] : [];
+    if (!cookiesFilePath) return [];
+    // Con cookies, YouTube exige un PO Token para el cliente "web" o no devuelve
+    // formatos reproducibles ("No video formats found!"). Sin un proveedor de PO
+    // Token configurado, este flag le pide a yt-dlp que igual liste esos formatos
+    // (pueden fallar/cortarse en descargas largas, pero es el workaround estándar).
+    return ['--cookies', cookiesFilePath, '--extractor-args', 'youtube:formats=missing_pot'];
 }
 
 function parseUrl(rawUrl) {
