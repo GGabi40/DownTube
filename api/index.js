@@ -23,14 +23,26 @@ function resolveYtDlpPath() {
 }
 const ytDlpPath = resolveYtDlpPath();
 
-// El cliente "web" (el que usa yt-dlp por defecto) es el que YouTube somete al
-// chequeo "Sign in to confirm you're not a bot" y, si hay cookies, al requisito
-// de PO Token. El cliente "android" pega contra el endpoint de la app móvil y
-// esquiva ambos problemas de raíz, pero solo si va SIN cookies del navegador
-// (mezclar cookies web con el cliente android hace que YouTube no devuelva
-// formatos reproducibles).
+// YouTube bloquea pedidos desde IPs de datacenter (Vercel, AWS, etc.) con un
+// chequeo anti-bot, tanto en el cliente "web" como en "android" — lo probamos.
+// Con cookies (YTDLP_COOKIES = contenido de un cookies.txt) se esquiva ese
+// chequeo, pero entonces YouTube exige un PO Token para listar formatos; sin
+// un proveedor de PO Token configurado, este flag le pide a yt-dlp que igual
+// intente listarlos (pueden fallar/cortarse, pero es lo más cerca que se
+// puede llegar sin montar infraestructura de PO Token aparte).
+let cookiesFilePath = null;
+if (process.env.YTDLP_COOKIES) {
+    cookiesFilePath = path.join(os.tmpdir(), 'downtube-cookies.txt');
+    try {
+        fs.writeFileSync(cookiesFilePath, process.env.YTDLP_COOKIES);
+    } catch (e) {
+        console.error('No se pudo escribir el archivo de cookies:', e.message);
+        cookiesFilePath = null;
+    }
+}
 function ytDlpExtraArgs() {
-    return ['--extractor-args', 'youtube:player_client=android'];
+    if (!cookiesFilePath) return [];
+    return ['--cookies', cookiesFilePath, '--extractor-args', 'youtube:formats=missing_pot'];
 }
 
 function parseUrl(rawUrl) {

@@ -46,16 +46,28 @@ El proyecto ya está listo para deployar tal cual — Vercel instala las depende
 vercel --prod
 ```
 
-## ⚠️ Notas
+## ⚠️ Limitación conocida: bloqueo anti-bot de YouTube en Vercel
 
-- Los videos se procesan dentro del tiempo límite de ejecución de la función serverless (configurado en 60s en `vercel.json`); videos muy largos o conversiones a MP3/WAV pesadas pueden no alcanzar a completarse en el plan gratuito de Vercel.
-- **YouTube puede bloquear los pedidos con "Sign in to confirm you're not a bot".** Es la protección anti-bot de YouTube contra IPs de datacenter (Vercel, AWS, GCP, etc.), no un bug de la app — pasa en casi cualquier hosting serverless/cloud. Se puede sortear pasándole cookies de una cuenta logueada (ver abajo).
-- Este proyecto es para uso personal/educativo. Descargar contenido de YouTube puede no cumplir con sus Términos de Servicio — usalo bajo tu propio criterio.
+**A la fecha, el deploy en Vercel no logra bajar videos de forma confiable.** No es un bug de la app — es la protección anti-bot de YouTube contra IPs de datacenter (Vercel, AWS, GCP, etc.), que se fue endureciendo durante 2025-2026:
 
-### 🍪 Autenticar con cookies (opcional, para esquivar el bloqueo anti-bot)
+- **Sin cookies** (cliente `web` o `android` de yt-dlp): YouTube devuelve directamente *"Sign in to confirm you're not a bot"* — probado con ambos clientes, bloqueado igual.
+- **Con cookies** (variable de entorno `YTDLP_COOKIES` con un `cookies.txt` de una cuenta logueada): se esquiva el chequeo anti-bot, pero YouTube exige un **PO Token** para listar formatos reproducibles, y sin un proveedor de PO Token configurado devuelve *"No video formats found!"*.
 
-1. Instalá una extensión tipo [Get cookies.txt LOCALLY](https://chrome.google.com/webstore/detail/get-cookiestxt-locally/cclelndahbckbenkjhflpdbgdldlbecc) y exportá las cookies de `youtube.com` estando logueado.
-2. En el dashboard de Vercel del proyecto → **Settings → Environment Variables**, creá una variable `YTDLP_COOKIES` con el contenido completo de ese archivo `cookies.txt`.
-3. Redeployá. El backend detecta la variable y se la pasa a `yt-dlp` automáticamente.
+Esto no se resuelve con un flag más — el código ya usa el workaround estándar de yt-dlp (`--cookies` + `--extractor-args youtube:formats=missing_pot`), documentado en su wiki, pero tampoco alcanza en la práctica ahora mismo.
 
-⚠️ Esas cookies son la sesión de tu cuenta de YouTube — no las compartas ni las subas al repo. Usá preferentemente una cuenta secundaria.
+**Opciones reales si necesitás que funcione andando en la nube:**
+1. Montar un proveedor de PO Token propio (ej. [bgutil-ytdlp-pot-provider](https://github.com/Brainicism/bgutil-ytdlp-pot-provider)) — es un servicio aparte, no un cambio de config.
+2. Deployar en un host con IP residencial/no-datacenter en vez de Vercel.
+3. **Usar la app en local** (ver abajo) — ahí funciona sin ningún workaround, porque la IP no está marcada como datacenter.
+
+Además: los videos se procesan dentro del tiempo límite de ejecución de la función serverless (60s en `vercel.json`); videos largos o conversiones pesadas pueden no alcanzar a completarse igual aunque el bloqueo anti-bot se resuelva.
+
+Este proyecto es para uso personal/educativo. Descargar contenido de YouTube puede no cumplir con sus Términos de Servicio — usalo bajo tu propio criterio.
+
+### 🍪 Cookies (dejan la app lo más cerca posible de andar en Vercel, pero no lo garantizan)
+
+1. Instalá una extensión tipo [Get cookies.txt LOCALLY](https://chrome.google.com/webstore/detail/get-cookiestxt-locally/cclelndahbckbenkjhflpdbgdldlbecc) (formato Netscape, no JSON) y exportá **solo** las cookies de `youtube.com` de una cuenta logueada — preferentemente secundaria, no la principal.
+2. Filtrá el archivo para quedarte solo con las cookies de sesión (`SID`, `HSID`, `SSID`, `APISID`, `SAPISID`, `__Secure-1PSID`, `__Secure-3PSID`, `__Secure-1PAPISID`, `__Secure-3PAPISID`, `__Secure-1PSIDCC`, `__Secure-3PSIDCC`, `__Secure-1PSIDTS`, `__Secure-3PSIDTS`, `LOGIN_INFO`, `SIDCC`, `PREF`) — el archivo completo trae cientos de cookies de tracking que superan el límite de 64KB de Vercel.
+3. En el dashboard de Vercel → **Settings → Environment Variables**, creá `YTDLP_COOKIES` con ese contenido filtrado y redeployá.
+
+⚠️ Esas cookies son la sesión de tu cuenta de Google/YouTube — nunca las pegues en un chat ni las subas al repo.
